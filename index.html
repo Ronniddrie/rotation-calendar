@@ -1,0 +1,695 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=5, user-scalable=yes, viewport-fit=cover" />
+<meta name="apple-mobile-web-app-capable" content="yes" />
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+<meta name="mobile-web-app-capable" content="yes" />
+<meta name="theme-color" content="#0a1628" />
+<meta name="apple-mobile-web-app-title" content="Ron Rotation" />
+<link rel="manifest" href="manifest.json" />
+<link rel="apple-touch-icon" href="icon-192.png" />
+<title>29/27 Rotation Calendar — 2025 & 2026 (v6)</title>
+<style>
+  :root{
+    --bg:#121418; --card:#1c1f26; --card-hover:#22262e; --text:#eef0f4; --muted:#8b95a5;
+    --blue:#4a90d9; --red:#ff3b3b; --green:#00d26a; --accent:#c9a84c; --gap:10px;
+    --header-bg:#18191f; --border:rgba(255,255,255,.08); --day-bg:#1a1d24;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;padding:0;background:transparent;color:var(--text);
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Inter,Roboto,Helvetica,Arial;
+    -webkit-text-size-adjust:100%;padding-bottom:env(safe-area-inset-bottom,0)}
+
+  /* Header */
+  header{position:sticky;top:0;z-index:10;-webkit-backdrop-filter:blur(16px);backdrop-filter:blur(16px);
+    background:linear-gradient(to bottom,rgba(24,25,31,.75),rgba(24,25,31,.6));
+    border-bottom:1px solid var(--border)}
+  .wrap{max-width:1200px;margin:0 auto;padding:14px 20px}
+  h1{font-size:22px;margin:4px 0 2px;display:flex;align-items:center;gap:10px;font-weight:700;letter-spacing:-.3px}
+  .year-badge{font-weight:600;padding:3px 10px;background:rgba(201,168,76,.12);color:var(--accent);
+    border-radius:999px;border:1px solid rgba(201,168,76,.3);font-size:14px}
+
+  /* Year Tabs */
+  .year-tabs{display:flex;gap:4px;margin-left:12px}
+  .year-tab{padding:6px 18px;border-radius:10px;border:1px solid var(--border);background:var(--card);color:var(--muted);
+    cursor:pointer;font-weight:700;font-size:15px;transition:all .2s;letter-spacing:.3px}
+  .year-tab:hover{background:var(--card-hover);color:var(--text)}
+  .year-tab.active{background:rgba(201,168,76,.18);color:var(--accent);border-color:rgba(201,168,76,.5);box-shadow:0 0 12px rgba(201,168,76,.15)}
+
+  /* Toolbar */
+  .toolbar{display:flex;flex-wrap:wrap;gap:8px;margin-top:10px}
+  .btn{padding:8px 14px;border-radius:10px;border:1px solid var(--border);background:var(--card);color:var(--text);
+    cursor:pointer;font-weight:600;font-size:13px;transition:all .15s}
+  .btn:hover{background:var(--card-hover);border-color:rgba(255,255,255,.15)}
+  .btn.ghost{background:transparent;color:var(--muted);border-color:transparent}
+  .btn.ghost:hover{color:var(--text);background:rgba(255,255,255,.04)}
+
+  /* Legend */
+  .legend{display:flex;align-items:center;gap:10px;margin-left:auto;flex-wrap:wrap}
+  .pill{display:inline-flex;align-items:center;gap:6px;padding:6px 12px;border-radius:999px;background:rgba(255,255,255,.04);
+    border:1px solid var(--border);color:var(--muted);font-size:12px;font-weight:500}
+  .dot{width:10px;height:10px;border-radius:50%;box-shadow:0 0 6px currentColor}
+  .d-blue{background:var(--blue);color:var(--blue)} .d-red{background:var(--red);color:var(--red)} .d-green{background:var(--green);color:var(--green)}
+
+  /* Quick Links */
+  .quick-links{display:flex;flex-wrap:wrap;gap:10px;margin-top:12px;padding-top:12px;border-top:1px solid var(--border)}
+  .quick-link{display:inline-flex;align-items:center;gap:8px;padding:9px 18px;border-radius:10px;
+    text-decoration:none;font-weight:600;font-size:13px;transition:all .2s;cursor:pointer}
+  .quick-link:hover{transform:translateY(-2px);box-shadow:0 6px 20px rgba(0,0,0,.4)}
+  .quick-link img{height:20px;width:auto;object-fit:contain}
+  .quick-link.qa{background:linear-gradient(135deg,rgba(120,0,60,.4),rgba(80,0,40,.5));border:1px solid rgba(160,0,80,.4);color:#f0b8d8}
+  .quick-link.qa:hover{border-color:rgba(200,0,100,.5)}
+  .quick-link.ba{background:linear-gradient(135deg,rgba(0,50,140,.4),rgba(0,30,100,.5));border:1px solid rgba(0,60,160,.4);color:#8ec0f8}
+  .quick-link.ba:hover{border-color:rgba(0,80,200,.5)}
+  .quick-link.hotel{background:linear-gradient(135deg,rgba(180,140,40,.3),rgba(140,100,20,.4));border:1px solid rgba(200,160,60,.35);color:#f4e0a0}
+  .quick-link.hotel:hover{border-color:rgba(220,180,80,.5)}
+
+  /* Calendar Grid */
+  .calendar{max-width:1200px;margin:16px auto 60px;display:grid;grid-template-columns:repeat(3,1fr);gap:var(--gap);padding:0 16px;position:relative;z-index:1}
+  @media (max-width:900px){.calendar{grid-template-columns:repeat(2,1fr)}}
+  @media (max-width:640px){
+    .calendar{grid-template-columns:1fr;padding:0 8px}
+    h1{font-size:16px;flex-wrap:wrap}
+    .wrap{padding:10px 12px}
+    .toolbar{gap:6px}
+    .btn{padding:7px 10px;font-size:12px}
+    .legend{margin-left:0;margin-top:6px;width:100%}
+    .pill{padding:4px 8px;font-size:11px}
+    .year-tabs{margin-left:0;margin-top:6px}
+    .year-tab{padding:5px 14px;font-size:13px}
+    .quick-links{gap:6px}
+    .quick-link{padding:7px 12px;font-size:12px}
+    .day{min-height:42px;-webkit-tap-highlight-color:transparent;touch-action:manipulation}
+    .day .num{font-size:13px}
+    .day .label{font-size:8px;height:14px;line-height:12px}
+    .flight-seg{flex-wrap:wrap;gap:8px}
+    .flight-seg .dep,.flight-seg .arr{min-width:60px}
+    .flight-seg .time{font-size:18px}
+    .flight-seg .details{min-width:100%;text-align:left;margin-top:4px;padding-top:4px;border-top:1px solid rgba(255,255,255,.06)}
+    dialog{width:95vw;padding:12px}
+    #picker{width:95vw}
+  }
+
+  /* Month Cards */
+  .month{background:rgba(28,31,38,.7);-webkit-backdrop-filter:blur(10px);backdrop-filter:blur(10px);border-radius:14px;padding:12px;
+    box-shadow:0 2px 12px rgba(0,0,0,.25),0 0 0 1px var(--border);transition:box-shadow .2s}
+  .month:hover{box-shadow:0 4px 20px rgba(0,0,0,.35),0 0 0 1px rgba(255,255,255,.1)}
+  .month-title{display:flex;align-items:center;justify-content:space-between;margin:2px 4px 10px}
+  .month-title h2{font-size:15px;margin:0;font-weight:700;color:var(--accent);letter-spacing:.3px;text-transform:uppercase}
+
+  /* Day of Week Headers */
+  .dow{display:grid;grid-template-columns:repeat(7,1fr);gap:5px;padding:0 2px;margin-bottom:6px}
+  .dow div{font-size:11px;text-align:center;color:var(--muted);font-weight:600;letter-spacing:.5px}
+
+  /* Day Cells */
+  .grid{display:grid;grid-template-columns:repeat(7,1fr);gap:5px}
+  .day{aspect-ratio:1/1;min-height:36px;border-radius:8px;border:1px solid rgba(255,255,255,.05);background:var(--day-bg);color:var(--text);
+    font-size:12px;display:flex;align-items:flex-start;justify-content:flex-start;padding:5px;position:relative;transition:all .15s}
+  .day:hover{background:#22262e}
+  .day .num{font-weight:700;font-size:12px}
+
+  /* On Rig - subtle steel blue */
+  .day.on{background:rgba(74,144,217,.15);border-color:rgba(74,144,217,.35)}
+  .day.on:hover{background:rgba(74,144,217,.22)}
+
+  /* Travel to Doha - sharp red */
+  .day.to{background:rgba(255,59,59,.22);border-color:rgba(255,59,59,.6);box-shadow:inset 0 0 0 1px rgba(255,59,59,.15)}
+  .day.to:hover{background:rgba(255,59,59,.32)}
+
+  /* Fly Home - sharp green */
+  .day.home{background:rgba(0,210,106,.22);border-color:rgba(0,210,106,.6);box-shadow:inset 0 0 0 1px rgba(0,210,106,.15)}
+  .day.home:hover{background:rgba(0,210,106,.32)}
+
+  /* Tags */
+  .day .tag{position:absolute;right:4px;bottom:4px;font-size:8px;font-weight:800;letter-spacing:.6px;text-transform:uppercase;
+    padding:2px 5px;border-radius:4px}
+  .day.to .tag{background:var(--red);color:#fff;box-shadow:0 1px 4px rgba(255,59,59,.5)}
+  .day.home .tag{background:var(--green);color:#fff;box-shadow:0 1px 4px rgba(0,210,106,.5)}
+
+  /* Link Indicator */
+  .link-indicator{position:absolute;right:5px;top:5px;width:14px;height:14px;border-radius:50%;background:rgba(201,168,76,.2);
+    border:1px solid var(--accent);display:none;place-items:center;font-size:10px;color:var(--accent);font-weight:700}
+  .day.has-link .link-indicator{display:grid}
+
+  /* Day Labels */
+  .day .label{position:absolute;left:5px;right:5px;bottom:5px;transform:none;padding:1px 5px;border-radius:6px;
+    font-size:9px;font-weight:600;text-align:center;background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.12);
+    color:rgba(238,240,244,.8);height:16px;overflow:hidden;white-space:nowrap;line-height:14px}
+
+  /* Flight Cards */
+  .flight-card{background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.1);border-radius:12px;padding:14px;margin-bottom:10px}
+  .flight-card .route-header{display:flex;align-items:center;gap:8px;margin-bottom:12px;padding-bottom:8px;border-bottom:1px solid rgba(255,255,255,.08)}
+  .flight-card .route-header .direction{font-size:11px;text-transform:uppercase;letter-spacing:1px;color:var(--muted);font-weight:600}
+  .flight-card .route-header .route-label{font-size:15px;font-weight:700;color:var(--text)}
+  .flight-card .route-header .route-date{margin-left:auto;font-size:12px;color:var(--accent);font-weight:600}
+  .flight-seg{display:flex;align-items:center;gap:12px;padding:10px;background:rgba(255,255,255,.04);border-radius:8px;margin-bottom:6px}
+  .flight-seg .dep,.flight-seg .arr{text-align:center;min-width:70px}
+  .flight-seg .time{font-size:22px;font-weight:800;color:var(--text);letter-spacing:-.5px}
+  .flight-seg .code{font-size:13px;font-weight:700;color:var(--blue)}
+  .flight-seg .airport{font-size:10px;color:var(--muted);margin-top:2px}
+  .flight-seg .mid{flex:1;text-align:center;position:relative}
+  .flight-seg .mid .duration{font-size:11px;color:var(--muted);margin-bottom:4px}
+  .flight-seg .mid .arrow{display:block;width:100%;height:2px;background:rgba(255,255,255,.15);position:relative}
+  .flight-seg .mid .arrow::after{content:'▶';position:absolute;right:-2px;top:-7px;font-size:10px;color:rgba(255,255,255,.3)}
+  .flight-seg .mid .flight-num{font-size:11px;color:var(--accent);font-weight:600;margin-top:4px}
+  .flight-seg .details{font-size:10px;color:var(--muted);min-width:90px;text-align:right;line-height:1.5}
+  .connection{text-align:center;font-size:11px;color:var(--muted);padding:4px 0;font-style:italic}
+  .booking-ref{display:inline-flex;align-items:center;gap:6px;padding:6px 12px;border-radius:8px;background:rgba(201,168,76,.1);border:1px solid rgba(201,168,76,.25);color:var(--accent);font-size:12px;font-weight:600;margin-top:8px}
+
+  /* Hint Text */
+  .hint{max-width:1200px;margin:10px auto;padding:0 20px;color:var(--muted);font-size:13px}
+
+  /* Instructions Popup */
+  #infoBtn{position:relative}
+  #infoPanel{display:none;position:absolute;top:calc(100% + 8px);left:0;width:min(420px,85vw);padding:14px 16px;
+    background:var(--card);border:1px solid rgba(255,255,255,.12);border-radius:12px;
+    box-shadow:0 12px 40px rgba(0,0,0,.5);color:var(--muted);font-size:13px;line-height:1.5;z-index:20}
+  #infoPanel.show{display:block}
+  #infoPanel strong{color:var(--text)}
+  #infoPanel ul{margin:8px 0 0;padding-left:18px}
+  #infoPanel li{margin-bottom:6px}
+  #infoPanel .close-info{position:absolute;top:8px;right:10px;background:none;border:none;color:var(--muted);cursor:pointer;font-size:18px;line-height:1}
+  #infoPanel .close-info:hover{color:var(--text)}
+
+  /* Background — crisp blue ocean gradient */
+  body{position:relative}
+  body::before{content:'';position:fixed;inset:0;z-index:-1;
+    background:
+      radial-gradient(ellipse 120% 60% at 50% 100%, rgba(0,40,80,.95) 0%, transparent 70%),
+      radial-gradient(ellipse 100% 40% at 30% 80%, rgba(0,80,130,.4) 0%, transparent 60%),
+      radial-gradient(ellipse 100% 40% at 70% 85%, rgba(0,60,120,.3) 0%, transparent 60%),
+      linear-gradient(180deg, #0a1628 0%, #0d2847 25%, #115e8c 50%, #1a8ab5 70%, #0d6d94 85%, #0a3d5c 100%)}
+
+  /* Edit Mode */
+  body.editing .day{cursor:pointer;outline:1px dashed rgba(201,168,76,.4)}
+  body.editing .day:hover{filter:brightness(1.08);outline-color:rgba(201,168,76,.7)}
+
+  /* Dialogs */
+  dialog{border:1px solid rgba(255,255,255,.1);background:var(--card);color:var(--text);border-radius:14px;padding:16px;
+    width:min(560px,92vw);box-shadow:0 20px 60px rgba(0,0,0,.5)}
+  dialog::backdrop{background:rgba(0,0,0,.6);-webkit-backdrop-filter:blur(4px);backdrop-filter:blur(4px)}
+  dialog form{display:flex;flex-direction:column;gap:10px}
+  input[type="url"],input[type="text"]{width:100%;padding:10px 12px;border-radius:8px;border:1px solid rgba(255,255,255,.1);
+    background:var(--day-bg);color:var(--text);transition:border-color .15s}
+  input[type="url"]:focus,input[type="text"]:focus{outline:none;border-color:var(--accent)}
+  .row{display:flex;gap:8px;align-items:center;flex-wrap:wrap}.row .grow{flex:1 1 auto}.small{font-size:12px;color:var(--muted)}
+  .list{display:flex;flex-direction:column;gap:8px}
+  .item{display:flex;gap:8px;align-items:center;padding:10px;border-radius:10px;background:var(--day-bg);border:1px solid var(--border);transition:background .15s}
+  .item:hover{background:var(--card-hover)}
+  .item .meta{font-size:12px;color:var(--muted)}.item .title{font-weight:700;color:var(--text)}.item .grow{flex:1 1 auto}
+
+  /* Picker */
+  #picker{border:1px solid rgba(255,255,255,.1);background:var(--card);color:var(--text);border-radius:14px;padding:16px;
+    width:min(680px,92vw);box-shadow:0 20px 60px rgba(0,0,0,.5);max-height:85vh;overflow-y:auto}
+  #picker::backdrop{background:rgba(0,0,0,.6);backdrop-filter:blur(4px)}
+  #picker .item{cursor:pointer} #picker .item:hover{background:var(--card-hover)}
+
+  /* PDF Viewer */
+  #viewer{position:fixed;inset:0;z-index:50;display:none;background:var(--bg)}
+  #viewer header{position:sticky;top:0;background:var(--header-bg);border-bottom:1px solid var(--border);padding:8px 12px;display:flex;gap:8px;align-items:center}
+  #viewer .title{font-weight:700;margin-right:auto}
+  #viewer .frame{position:absolute;top:48px;left:0;right:0;bottom:0}
+  #viewer iframe{width:100%;height:100%;border:0;background:var(--bg)}
+</style>
+</head>
+<body>
+<header>
+  <div class="wrap">
+    <h1><span id="userName">Ron Niddrie</span> — 29/27 Rotation Calendar <span class="year-tabs" id="yearTabs"></span></h1>
+    <div class="toolbar">
+      <button class="btn" id="editBtn">✏️ Edit day</button>
+      <button class="btn" id="downloadBtn">💾 Save As</button>
+      <button class="btn ghost" id="settingsBtn">Settings</button>
+      <span id="infoBtn" style="position:relative">
+        <button class="btn ghost" id="infoToggle">ℹ️ Instructions</button>
+        <div id="infoPanel">
+          <button class="close-info" id="infoClose">&times;</button>
+          <strong>How to use this calendar</strong>
+          <ul>
+            <li>Tap a <strong style="color:var(--red)">red</strong> (travel out) or <strong style="color:var(--green)">green</strong> (fly home) day to view its attachments</li>
+            <li>Click <strong>Edit day</strong> to enter edit mode, then tap any day to set a title and attach links or PDFs</li>
+            <li><strong>Save As</strong> downloads a standalone copy with all your links, settings, and name embedded — perfect for sharing</li>
+            <li>Use <strong>Settings</strong> to change your name, adjust rotation dates, on/off days, and display years</li>
+          </ul>
+        </div>
+      </span>
+      <div class="legend">
+        <span class="pill"><span class="dot d-blue"></span> On rig</span>
+        <span class="pill"><span class="dot d-red"></span> Travel to Doha</span>
+        <span class="pill"><span class="dot d-green"></span> Fly home</span>
+      </div>
+    </div>
+    <div class="quick-links">
+      <a class="quick-link qa" href="https://www.qatarairways.com" target="_blank"><img src="https://www.gstatic.com/flights/airline_logos/70px/QR.png" alt="QR" onerror="this.outerHTML='<span style=font-size:18px>🟤</span>'"/>Qatar Airways</a>
+      <a class="quick-link ba" href="https://www.britishairways.com" target="_blank"><img src="https://www.gstatic.com/flights/airline_logos/70px/BA.png" alt="BA" onerror="this.outerHTML='<span style=font-size:18px>🔵</span>'"/>British Airways</a>
+      <a class="quick-link hotel" href="https://www.lacigalehotel.com" target="_blank"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#f0d890" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 21h18M5 21V7l8-4v18M19 21V11l-6-4M9 9h.01M9 13h.01M9 17h.01M13 13h.01M13 17h.01"/></svg>La Cigale Hotel</a>
+    </div>
+  </div>
+</header>
+
+<main id="cal" class="calendar"></main>
+
+<!-- Manage Day -->
+<dialog id="manage">
+  <form method="dialog" id="manageForm">
+    <div class="row"><strong>Manage day</strong><span class="small" id="manageDate"></span></div>
+    <label class="small" for="dayTitle">Day title (shows on the calendar)</label>
+    <input type="text" id="dayTitle" placeholder="e.g., Work, Home, Holiday" />
+    <div class="row"><strong>Attachments</strong><span class="small">Add as many as you like</span></div>
+    <div class="row">
+      <input class="grow" type="url" id="newUrl" placeholder="https://… (booking page or online PDF)" />
+      <input class="grow" type="text" id="newUrlTitle" placeholder="Title (e.g., BA Booking)" />
+      <button class="btn" id="addUrl" value="addUrl">Add link</button>
+    </div>
+    <div class="row">
+      <input class="grow" type="file" id="newFile" accept="application/pdf" />
+      <input class="grow" type="text" id="newFileTitle" placeholder="Title (e.g., QA Ticket PDF)" />
+      <button class="btn" id="addFile" value="addFile">Add PDF</button>
+    </div>
+    <div class="list" id="attachList"></div>
+    <div class="row">
+      <button class="btn" value="save">Done</button>
+      <div class="grow"></div>
+      <button class="btn ghost" value="cancel">Cancel</button>
+    </div>
+  </form>
+</dialog>
+
+<!-- Picker -->
+<dialog id="picker">
+  <div class="row"><strong>Open attachment</strong><span class="small" id="pickerDate"></span></div>
+  <div class="list" id="pickerList"></div>
+  <div class="row"><button class="btn" id="pickerClose">Close</button></div>
+</dialog>
+
+<!-- Settings -->
+<dialog id="settings">
+  <form method="dialog" id="settingsForm">
+    <strong>Settings</strong>
+    <div class="row"><label class="small" for="nameInput">Your name</label><input class="grow" type="text" id="nameInput" placeholder="Ron Niddrie" /></div>
+    <div class="row"><label class="small" for="anchor">First outbound (to Doha)</label><input class="grow" type="date" id="anchor" /></div>
+    <div class="row"><label class="small" for="onDays">On‑rig days</label><input class="grow" type="number" id="onDays" min="1" max="60" /></div>
+    <div class="row"><label class="small" for="offDays">Off‑rotation days (incl. both travel days)</label><input class="grow" type="number" id="offDays" min="1" max="60" /></div>
+    <div class="row"><label class="small" for="years">Years to display (comma separated)</label><input class="grow" type="text" id="years" placeholder="2025, 2026" /></div>
+    <div class="row"><label class="small" for="autoLabels">Auto labels (Work/Home/Travel)</label><input type="checkbox" id="autoLabels" /></div>
+    <div class="row"><button class="btn" value="save">Save & rebuild</button><div class="grow"></div><button class="btn ghost" value="cancel">Cancel</button></div>
+  </form>
+</dialog>
+
+<footer class="hint" style="opacity:.6;border-top:1px solid var(--border);padding-top:16px;margin-top:0">Multi‑attachments and day titles enabled. Works offline — "Download with data" embeds everything into the file for easy sharing.</footer>
+
+<script id="embedded-links" type="application/json">{"2026-03-04":{"title":"Fly Home","booking":"9O74AG","eticket":"157-2133107473","items":[{"type":"url","url":"https://www.qatarairways.com/en/manage-booking.html","title":"QR5943 DOH 01:50→LHR 06:15 (7h25m)"},{"type":"url","url":"https://www.qatarairways.com/en/manage-booking.html","title":"QR6241 LHR 08:05→ABZ 09:40 (1h35m, Op. by BA)"}],"flights":[{"dep":"01:50","depCode":"DOH","depAirport":"Doha, Hamad International","arr":"06:15","arrCode":"LHR","arrAirport":"London Heathrow, Terminal 5","duration":"7h 25m","flightNo":"QR 5943","aircraft":"Boeing 777-200/300","operator":"Operated by: British Airways"},{"dep":"08:05","depCode":"LHR","depAirport":"London Heathrow, Terminal 5","arr":"09:40","arrCode":"ABZ","arrAirport":"Aberdeen, Dyce Airport","duration":"1h 35m","flightNo":"QR 6241","aircraft":"Airbus A320","operator":"Operated by: British Airways","connection":"1h 50m"}]},"2026-03-30":{"title":"Travel to Doha","booking":"9O74AG","eticket":"157-2133107473","items":[{"type":"url","url":"https://www.qatarairways.com/en/manage-booking.html","title":"QR6009 ABZ 09:35→LHR 11:15 (1h40m, Op. by BA) Seat 19A"},{"type":"url","url":"https://www.qatarairways.com/en/manage-booking.html","title":"QR110 LHR 15:35→DOH 00:30+1 (Tue 31 Mar)"}],"flights":[{"dep":"09:35","depCode":"ABZ","depAirport":"Aberdeen, Dyce Airport","arr":"11:15","arrCode":"LHR","arrAirport":"London Heathrow, Terminal 5","duration":"1h 40m","flightNo":"QR 6009","aircraft":"Airbus A321neo","operator":"Operated by: British Airways","seat":"19A"},{"dep":"15:35","depCode":"LHR","depAirport":"London Heathrow, Terminal 4","arr":"00:30","arrCode":"DOH","arrAirport":"Doha, Hamad International","duration":"6h 55m","flightNo":"QR 110","aircraft":"Airbus A350-900","operator":"Qatar Airways","connection":"4h 20m","arrDate":"Tue 31 Mar"}]},"2026-03-31":{"title":"Arrive DOH","booking":"9O74AG","items":[{"type":"url","url":"https://www.qatarairways.com/en/manage-booking.html","title":"QR110 arrives DOH 00:30 — Booking 9O74AG"}],"flights":[{"dep":"15:35","depCode":"LHR","depAirport":"London Heathrow, Terminal 4","arr":"00:30","arrCode":"DOH","arrAirport":"Doha, Hamad International","duration":"6h 55m","flightNo":"QR 110","aircraft":"Airbus A350-900","operator":"Qatar Airways","arrDate":"Tue 31 Mar"}]}}</script>
+<script id="embedded-config" type="application/json">{"anchor":"2025-01-06","onDays":29,"offDays":27,"years":[2025,2026],"autoLabels":true,"seeded":true,"userName":"Ron Niddrie"}</script>
+
+<!-- PDF viewer -->
+<div id="viewer">
+  <header><span class="title" id="viewerTitle">Attachment</span><button class="btn ghost" id="viewerDownload">Download PDF</button><button class="btn" id="viewerClose">Close</button></header>
+  <div class="frame"><iframe id="viewerFrame" title="PDF"></iframe></div>
+</div>
+
+<script>
+  // Dialog polyfill for older iOS Safari (< 15.4)
+  (function(){
+    if(typeof HTMLDialogElement==='function') return;
+    const style=document.createElement('style');
+    style.textContent=`dialog{display:none;position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);z-index:100;margin:0}dialog.open{display:block}dialog+.dialog-backdrop{position:fixed;inset:0;background:rgba(0,0,0,.6);-webkit-backdrop-filter:blur(4px);backdrop-filter:blur(4px);z-index:99}`;
+    document.head.appendChild(style);
+    HTMLElement.prototype.showModal=function(){
+      this.classList.add('open');this.setAttribute('open','');
+      const bd=document.createElement('div');bd.className='dialog-backdrop';bd.addEventListener('click',()=>this.close());
+      this.insertAdjacentElement('beforebegin',bd);this._backdrop=bd;
+    };
+    HTMLElement.prototype.close=function(){
+      this.classList.remove('open');this.removeAttribute('open');
+      if(this._backdrop){this._backdrop.remove();this._backdrop=null;}
+    };
+  })();
+
+  // Utils
+  const pad=n=>String(n).padStart(2,'0');
+  const toKey=d=>`${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`;
+  const addDays=(date,days)=>{const d=new Date(date); d.setDate(d.getDate()+days); return d;};
+  const parseISO=iso=>{const [y,m,dd]=iso.split('-').map(Number); return new Date(y,m-1,dd);};
+  const readJSON=id=>{const el=document.getElementById(id); if(!el) return null; try{return JSON.parse(el.textContent||'{}')}catch{return null}};
+
+  // Config & Links
+  const defaultConfig={anchor:"2025-01-06",onDays:29,offDays:27,years:[2025,2026],autoLabels:true,seeded:false,userName:"Ron Niddrie"};
+  // Safe localStorage wrapper for iOS compatibility
+  const _ls={get(k){try{return localStorage.getItem(k)}catch{return null}},set(k,v){try{localStorage.setItem(k,v)}catch{}},rm(k){try{localStorage.removeItem(k)}catch{}}};
+
+  const loadConfig=()=>{const e=readJSON('embedded-config');
+    try{const raw=_ls.get('rotationConfig');
+      if(!raw&&e) return Object.assign({},defaultConfig,e);
+      if(!raw) return {...defaultConfig};
+      const p=JSON.parse(raw);
+      if(!p.anchor)p.anchor=defaultConfig.anchor;
+      if(!p.onDays)p.onDays=defaultConfig.onDays;
+      if(!p.offDays)p.offDays=defaultConfig.offDays;
+      if(!Array.isArray(p.years)||!p.years.length)p.years=defaultConfig.years;
+      return Object.assign({},defaultConfig,e||{},p);
+    }catch{return Object.assign({},defaultConfig,e||{});} };
+  const saveConfig=cfg=>_ls.set('rotationConfig',JSON.stringify(cfg));
+
+  // LINKS[date] = { title?: string, items: [{type:'url',url,title?} | {type:'pdf',data,filename?,title?}] }
+  function normalize(raw){
+    const out={};
+    for(const [k,v] of Object.entries(raw||{})){
+      if(!v) continue;
+      if (Array.isArray(v.items)) out[k]=v;
+      else if (v.url||v.data){
+        const item=v.url?{type:'url',url:v.url,title:v.title||'Link'}:{type:'pdf',data:v.data,filename:v.filename||'file.pdf',title:v.title||v.filename||'PDF'};
+        out[k]={title:v.title||'',items:[item]};
+      } else out[k]={title:'',items:[]};
+    }
+    return out;
+  }
+  const loadLinks=()=>{ try{const e=normalize(readJSON('embedded-links')||{}); const l=normalize(JSON.parse(_ls.get('flightLinks')||'{}')); const merged=Object.assign({},l); for(const[k,v]of Object.entries(e)){if(v.items&&v.items.length){merged[k]=v;}else if(!merged[k]){merged[k]=v;}} return merged;}catch{return normalize(readJSON('embedded-links')||{});} };
+  const saveLinks=o=>_ls.set('flightLinks',JSON.stringify(o));
+
+  // Clear stale localStorage on first load of updated file
+  (function(){const ver='flights-v2';if(_ls.get('calVersion')!==ver){_ls.rm('flightLinks');_ls.rm('rotationConfig');_ls.set('calVersion',ver);}})();
+
+  let CONFIG=loadConfig();
+  let LINKS=loadLinks();
+  let EDIT=false;
+
+  // Build rotation map
+  function buildMap(startDate,endDate,cfg){
+    const map={}; let t=parseISO(cfg.anchor); const span=cfg.onDays+cfg.offDays;
+    while(t<=endDate){
+      map[toKey(t)]={type:'to'};
+      for(let i=1;i<=cfg.onDays;i++){ map[toKey(addDays(t,i))]={type:'on'}; }
+      map[toKey(addDays(t,cfg.onDays+1))]={type:'home'};
+      t=addDays(t,span);
+    }
+    return map;
+  }
+
+  
+  function seedTitlesIfNeeded(rota){
+    if(!CONFIG.autoLabels || CONFIG.seeded) return;
+    let changed=false;
+    for(const [key,info] of Object.entries(rota)){
+      if(!info) continue;
+      const di = LINKS[key] || {title:'', items:[]};
+      if(!di.title){ // only seed if empty
+        let t='';
+        if(info.type==='on') t='Work';
+        else if(info.type==='home') t='Home';
+        else if(info.type==='to') t='Travel';
+        if(t){ di.title = t; LINKS[key]=di; changed=true; }
+      }
+    }
+    if(changed){ saveLinks(LINKS); }
+    CONFIG.seeded = true; saveConfig(CONFIG);
+  }
+
+  // Year tabs
+  let ACTIVE_YEAR=new Date().getFullYear();
+  function buildYearTabs(){
+    const container=document.getElementById('yearTabs'); container.innerHTML='';
+    CONFIG.years.forEach(y=>{
+      const tab=document.createElement('span'); tab.className='year-tab'+(y===ACTIVE_YEAR?' active':'');
+      tab.textContent=y; tab.addEventListener('click',()=>{ ACTIVE_YEAR=y; buildYearTabs(); render(); });
+      container.appendChild(tab);
+    });
+  }
+
+  // Render
+  const DOW=['M','T','W','T','F','S','S'];
+  function render(){
+    const cal=document.getElementById('cal'); cal.innerHTML='';
+    const years=CONFIG.years;
+    const startDate=new Date(Math.min(...years),0,1);
+    const endDate=new Date(Math.max(...years),11,31);
+    const rota=buildMap(startDate,endDate,CONFIG);
+    seedTitlesIfNeeded(rota);
+    for(let m=0;m<12;m++){ cal.appendChild(renderMonth(ACTIVE_YEAR,m,rota)); }
+    refreshIndicatorsAndLabels();
+    fitLabels();
+  }
+  function renderMonth(year,month,rota){
+    const names=["January","February","March","April","May","June","July","August","September","October","November","December"];
+    const first=new Date(year,month,1), last=new Date(year,month+1,0);
+    let startCol=first.getDay()-1; if(startCol<0) startCol=6; startCol+=1; // Monday=1..Sunday=7
+    const el=document.createElement('section'); el.className='month';
+    el.innerHTML=`<div class="month-title"><h2>${names[month]} ${year}</h2></div>
+      <div class="dow">${DOW.map(x=>`<div>${x}</div>`).join('')}</div><div class="grid"></div>`;
+    const grid=el.querySelector('.grid');
+    for(let d=1; d<=last.getDate(); d++){
+      const date=new Date(year,month,d);
+      const cell=dayTile(date, rota);
+      if(d===1) cell.style.gridColumnStart=String(startCol);
+      grid.appendChild(cell);
+    }
+    return el;
+  }
+  function dayTile(date, rota){
+    const key=toKey(date);
+    const cell=document.createElement('div'); cell.className='day'; cell.dataset.date=key;
+    const info=rota[key];
+    if(info){ if(info.type==='on') cell.classList.add('on'); if(info.type==='to') cell.classList.add('to'); if(info.type==='home') cell.classList.add('home'); }
+    const di=LINKS[key]||{title:'',items:[]};
+    const titleText=di.title&&di.title.trim()?di.title.trim():'';
+    const label=titleText?`<div class="label">${titleText}</div>`:'';
+    cell.innerHTML=`<span class="num">${date.getDate()}</span><div class="link-indicator">⎘</div>${label}`;
+
+    // click behaviour: manager in edit; otherwise picker if any or if travel/home
+    cell.addEventListener('click',()=>{
+      if(EDIT){ openManager(key); return; }
+      const di=LINKS[key];
+      if(di && di.items && di.items.length){ openPicker(key); return; }
+      if(info && (info.type==='to'||info.type==='home')){ openPicker(key); return; }
+    });
+    return cell;
+  }
+
+  function refreshIndicatorsAndLabels(){
+    document.querySelectorAll('.day').forEach(el=>{
+      const k=el.dataset.date; const di=LINKS[k];
+      if(di && di.items && di.items.length) el.classList.add('has-link'); else el.classList.remove('has-link');
+      const existing=el.querySelector('.label'); if(existing) existing.remove();
+      let text=''; if(di && di.title && di.title.trim()) text = di.title.trim(); if(text){ const div=document.createElement('div'); div.className='label'; div.textContent=text; el.appendChild(div); }
+    });
+  }
+
+  function fitLabels(){
+    const labels=document.querySelectorAll('.day .label');
+    labels.forEach(lbl=>{
+      let size=9, min=6; lbl.style.fontSize=size+'px';
+      // shrink while either width or height overflows
+      let guard=0;
+      while((lbl.scrollWidth>lbl.clientWidth) && size>min && guard<20){
+        size-=0.5; lbl.style.fontSize=size+'px'; guard++;
+      }
+    });
+  }
+
+  // Picker
+  const picker=document.getElementById('picker');
+  const pickerDate=document.getElementById('pickerDate');
+  const pickerList=document.getElementById('pickerList');
+  document.getElementById('pickerClose').addEventListener('click',()=>picker.close());
+  function renderFlightCard(flights, direction, dateLabel, booking){
+    const card=document.createElement('div'); card.className='flight-card';
+    let html=`<div class="route-header"><span class="direction">${direction}</span><span class="route-label">${flights[0].depCode} → ${flights[flights.length-1].arrCode}</span><span class="route-date">${dateLabel}</span></div>`;
+    flights.forEach((f,i)=>{
+      if(i>0 && f.connection){ html+=`<div class="connection">Connection time: ${f.connection}</div>`; }
+      const arrTime = f.arrDate ? f.arr+' <span style="font-size:10px;color:var(--muted)">('+f.arrDate+')</span>' : f.arr;
+      const seatInfo = f.seat ? `<br>Seat: <strong>${f.seat}</strong>` : '';
+      html+=`<div class="flight-seg"><div class="dep"><div class="time">${f.dep}</div><div class="code">${f.depCode}</div><div class="airport">${f.depAirport}</div></div><div class="mid"><div class="duration">${f.duration}</div><div class="arrow"></div><div class="flight-num">${f.flightNo}</div></div><div class="arr"><div class="time">${arrTime}</div><div class="code">${f.arrCode}</div><div class="airport">${f.arrAirport}</div></div><div class="details">${f.aircraft}<br>${f.operator}${seatInfo}</div></div>`;
+    });
+    if(booking){ html+=`<div class="booking-ref">✈ Booking ref: ${booking}</div>`; }
+    card.innerHTML=html; return card;
+  }
+
+  function openPicker(dateKey){
+    const di=LINKS[dateKey]||{items:[]};
+    pickerDate.textContent=dateKey;
+    pickerList.innerHTML='';
+    // Render flight cards if flight data exists
+    if(di.flights && di.flights.length){
+      const direction = di.title || 'Flight';
+      const dateObj = parseISO(dateKey);
+      const dateLabel = dateObj.toLocaleDateString('en-GB',{weekday:'long',day:'numeric',month:'long',year:'numeric'});
+      pickerList.appendChild(renderFlightCard(di.flights, direction, dateLabel, di.booking));
+      // Add manage booking link below the card
+      if(di.items && di.items.length){
+        const linkSection=document.createElement('div');linkSection.style.cssText='margin-top:10px;padding-top:10px;border-top:1px solid var(--border)';
+        di.items.forEach(it=>{
+          const row=document.createElement('div'); row.className='item'; row.style.cursor='pointer';
+          row.innerHTML=`<div>🔗</div><div class="grow"><div class="title">Manage Booking on Qatar Airways</div><div class="meta">qatarairways.com</div></div>`;
+          row.addEventListener('click',()=>{ window.open(it.url,'_blank'); });
+          linkSection.appendChild(row);
+        });
+        // Only add one link (avoid duplicates)
+        const singleLink=linkSection.querySelector('.item');
+        const wrap=document.createElement('div');wrap.style.cssText='margin-top:10px;padding-top:10px;border-top:1px solid var(--border)';
+        wrap.appendChild(singleLink);
+        pickerList.appendChild(wrap);
+      }
+    }else if(!di.items || !di.items.length){
+      const empty=document.createElement('div'); empty.className='item'; empty.innerHTML='<span class="meta">No attachments yet.</span>'; pickerList.appendChild(empty);
+    }else{
+      di.items.forEach(it=>{
+        const row=document.createElement('div'); row.className='item';
+        const icon=it.type==='pdf'?'📄':'🔗';
+        let meta=''; if(it.type==='pdf'){ meta=it.filename||''; } else { try{ meta=new URL(it.url).hostname; }catch{ meta=it.url; } }
+        row.innerHTML=`<div>${icon}</div><div class="grow"><div class="title">${it.title|| (it.type==='pdf'?(it.filename||'PDF'):'Link')}</div><div class="meta">${meta}</div></div>`;
+        row.addEventListener('click',()=>{ if(it.type==='pdf'){ openViewer(it.data,it.filename||'file.pdf'); } else { location.href=it.url; } picker.close(); });
+        pickerList.appendChild(row);
+      });
+    }
+    picker.showModal();
+  }
+
+  // Viewer
+  const viewer=document.getElementById('viewer');
+  const viewerFrame=document.getElementById('viewerFrame');
+  const viewerTitle=document.getElementById('viewerTitle');
+  const viewerDownload=document.getElementById('viewerDownload');
+  const viewerClose=document.getElementById('viewerClose');
+  viewerClose.addEventListener('click',()=>{ viewer.style.display='none'; viewerFrame.src='about:blank'; });
+  function openViewer(dataUrl,filename){
+    viewerTitle.textContent=filename||'Attachment'; viewer.style.display='block'; viewerFrame.src=dataUrl;
+    viewerDownload.onclick=()=>{ const a=document.createElement('a'); a.href=dataUrl; a.download=filename||'attachment.pdf'; document.body.appendChild(a); a.click(); a.remove(); };
+  }
+
+  // Manager
+  const manage=document.getElementById('manage');
+  const manageDate=document.getElementById('manageDate');
+  const dayTitle=document.getElementById('dayTitle');
+  const attachList=document.getElementById('attachList');
+  const newUrl=document.getElementById('newUrl');
+  const newUrlTitle=document.getElementById('newUrlTitle');
+  const newFile=document.getElementById('newFile');
+  const newFileTitle=document.getElementById('newFileTitle');
+
+  function openManager(dateKey){
+    manageDate.textContent=dateKey; manage.dataset.date=dateKey;
+    const di=LINKS[dateKey]||{title:'',items:[]};
+    if(!LINKS[dateKey]) LINKS[dateKey]=di;
+    if(!Array.isArray(LINKS[dateKey].items)) LINKS[dateKey].items=[];
+    // Prefill title with fallback if empty
+    dayTitle.value=di.title||'';
+    renderAttachList(dateKey);
+    newUrl.value=''; newUrlTitle.value=''; newFile.value=''; newFileTitle.value='';
+    manage.showModal();
+  }
+  function renderAttachList(dateKey){
+    const di=LINKS[dateKey]; attachList.innerHTML='';
+    if(!di.items.length){ const empty=document.createElement('div'); empty.className='meta'; empty.textContent='No attachments yet.'; attachList.appendChild(empty); }
+    else{
+      di.items.forEach((it,idx)=>{
+        const row=document.createElement('div'); row.className='item';
+        const icon=it.type==='pdf'?'📄':'🔗'; const title=it.title|| (it.type==='pdf'?(it.filename||'PDF'):'Link');
+        const meta=it.type==='pdf'?(it.filename||''): (it.url||'');
+        row.innerHTML=`<div>${icon}</div><div class="grow"><div class="title">${title}</div><div class="meta">${meta}</div></div>
+          <button class="btn ghost" data-action="up" data-idx="${idx}">↑</button>
+          <button class="btn ghost" data-action="down" data-idx="${idx}">↓</button>
+          <button class="btn danger" data-action="del" data-idx="${idx}">Remove</button>`;
+        attachList.appendChild(row);
+      });
+      attachList.querySelectorAll('button').forEach(btn=>{
+        const idx=parseInt(btn.dataset.idx,10);
+        btn.addEventListener('click',(e)=>{
+          e.preventDefault();
+          const items=LINKS[manage.dataset.date].items;
+          const act=btn.dataset.action;
+          if(act==='del'){ items.splice(idx,1); saveLinks(LINKS); renderAttachList(manage.dataset.date); refreshIndicatorsAndLabels(); fitLabels(); }
+          if(act==='up' && idx>0){ const t=items[idx-1]; items[idx-1]=items[idx]; items[idx]=t; saveLinks(LINKS); renderAttachList(manage.dataset.date); }
+          if(act==='down' && idx<items.length-1){ const t=items[idx+1]; items[idx+1]=items[idx]; items[idx]=t; saveLinks(LINKS); renderAttachList(manage.dataset.date); }
+        });
+      });
+    }
+  }
+  document.getElementById('addUrl').addEventListener('click',(e)=>{
+    e.preventDefault(); const dateKey=manage.dataset.date; if(!dateKey) return;
+    const url=newUrl.value.trim(); const title=(newUrlTitle.value.trim()||'Link');
+    if(!url){ alert('Enter a URL'); return; }
+    if(!LINKS[dateKey]) LINKS[dateKey]={title:'',items:[]};
+    LINKS[dateKey].items.push({type:'url',url,title}); saveLinks(LINKS); renderAttachList(dateKey); refreshIndicatorsAndLabels(); fitLabels();
+    newUrl.value=''; newUrlTitle.value='';
+  });
+  document.getElementById('addFile').addEventListener('click',async (e)=>{
+    e.preventDefault(); const dateKey=manage.dataset.date; if(!dateKey) return;
+    const f=newFile.files&&newFile.files[0]; if(!f){ alert('Choose a PDF file'); return; }
+    const title=(newFileTitle.value.trim()||f.name||'PDF'); const data=await fileToDataURL(f);
+    if(!LINKS[dateKey]) LINKS[dateKey]={title:'',items:[]};
+    LINKS[dateKey].items.push({type:'pdf',data,filename:f.name||'file.pdf',title}); saveLinks(LINKS); renderAttachList(dateKey); refreshIndicatorsAndLabels(); fitLabels();
+    newFile.value=''; newFileTitle.value='';
+  });
+  document.getElementById('manageForm').addEventListener('click',(e)=>{
+    if(e.target.value==='save'){ e.preventDefault();
+      const dateKey=manage.dataset.date; if(!dateKey) return;
+      const di=LINKS[dateKey]||{title:'',items:[]}; di.title=dayTitle.value.trim();
+      LINKS[dateKey]=di; saveLinks(LINKS); refreshIndicatorsAndLabels(); fitLabels(); manage.close();
+    }
+  });
+  function fileToDataURL(file){ return new Promise((res,rej)=>{ const fr=new FileReader(); fr.onload=()=>res(fr.result); fr.onerror=rej; fr.readAsDataURL(file); }); }
+
+  // Toolbar
+  document.getElementById('editBtn').addEventListener('click',()=>{
+    EDIT=!EDIT; document.body.classList.toggle('editing',EDIT);
+    document.getElementById('editBtn').textContent=EDIT?'✅ Done editing':'✏️ Edit day';
+});
+  document.getElementById('downloadBtn').addEventListener('click',()=>{
+    document.getElementById('embedded-links').textContent=JSON.stringify(LINKS);
+    document.getElementById('embedded-config').textContent=JSON.stringify(CONFIG);
+    const html='<!DOCTYPE html>'+document.documentElement.outerHTML;
+    const blob=new Blob([html],{type:'text/html'});
+    const a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download='rotation-calendar-2025-2026-linked.html';
+    document.body.appendChild(a); a.click(); setTimeout(()=>{URL.revokeObjectURL(a.href); a.remove();},1000);
+  });
+  const settingsDlg=document.getElementById('settings');
+  const autoLabelsInput=document.getElementById('autoLabels');
+  const anchorInput=document.getElementById('anchor');
+  const onDaysInput=document.getElementById('onDays');
+  const offDaysInput=document.getElementById('offDays');
+  const yearsInput=document.getElementById('years');
+  const nameInput=document.getElementById('nameInput');
+  const userNameEl=document.getElementById('userName');
+  // Apply saved name on load
+  if(CONFIG.userName) userNameEl.textContent=CONFIG.userName;
+  document.getElementById('settingsBtn').addEventListener('click',()=>{
+    nameInput.value=CONFIG.userName||'';
+    anchorInput.value=CONFIG.anchor;
+    autoLabelsInput.checked=CONFIG.autoLabels; onDaysInput.value=CONFIG.onDays; offDaysInput.value=CONFIG.offDays; yearsInput.value=CONFIG.years.join(', ');
+    settingsDlg.showModal();
+  });
+  document.getElementById('settingsForm').addEventListener('click',(ev)=>{
+    if(ev.target.value==='save'){ ev.preventDefault();
+      const next={ userName:nameInput.value.trim()||CONFIG.userName||'', anchor:anchorInput.value||CONFIG.anchor, onDays:Math.max(1,parseInt(onDaysInput.value||CONFIG.onDays,10)), offDays:Math.max(1,parseInt(offDaysInput.value||CONFIG.offDays,10)), years: yearsInput.value.split(',').map(s=>parseInt(s.trim(),10)).filter(n=>!Number.isNaN(n)) };
+      CONFIG=next; saveConfig(CONFIG); userNameEl.textContent=CONFIG.userName; settingsDlg.close(); buildYearTabs(); render();
+    }
+  });
+
+  // Instructions panel toggle
+  document.getElementById('infoToggle').addEventListener('click',(e)=>{
+    e.stopPropagation();
+    document.getElementById('infoPanel').classList.toggle('show');
+  });
+  document.getElementById('infoClose').addEventListener('click',(e)=>{
+    e.stopPropagation();
+    document.getElementById('infoPanel').classList.remove('show');
+  });
+  document.addEventListener('click',(e)=>{
+    const panel=document.getElementById('infoPanel');
+    if(panel.classList.contains('show') && !document.getElementById('infoBtn').contains(e.target)){
+      panel.classList.remove('show');
+    }
+  });
+
+  // Go
+  buildYearTabs();
+  render();
+
+  // Register Service Worker for PWA / offline support
+  if('serviceWorker' in navigator){
+    navigator.serviceWorker.register('sw.js').catch(()=>{});
+  }
+</script>
+</body>
+</html>
