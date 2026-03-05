@@ -51,7 +51,7 @@
   .pill{display:inline-flex;align-items:center;gap:6px;padding:6px 12px;border-radius:999px;background:rgba(255,255,255,.04);
     border:1px solid var(--border);color:var(--muted);font-size:12px;font-weight:500}
   .dot{width:10px;height:10px;border-radius:50%;box-shadow:0 0 6px currentColor}
-  .d-blue{background:var(--blue);color:var(--blue)} .d-red{background:var(--red);color:var(--red)} .d-green{background:var(--green);color:var(--green)}
+  .d-blue{background:var(--blue);color:var(--blue)} .d-red{background:var(--red);color:var(--red)} .d-green{background:var(--green);color:var(--green)} .d-yellow{background:#ffc800;color:#ffc800}
 
   /* Quick Links */
   .quick-links{display:flex;flex-wrap:wrap;gap:10px;margin-top:12px;padding-top:12px;border-top:1px solid var(--border)}
@@ -121,6 +121,10 @@
   /* Fly Home - sharp green */
   .day.home{background:rgba(0,210,106,.22);border-color:rgba(0,210,106,.6);box-shadow:inset 0 0 0 1px rgba(0,210,106,.15)}
   .day.home:hover{background:rgba(0,210,106,.32)}
+
+  /* Additional / Extended day - yellow */
+  .day.extra{background:rgba(255,200,0,.22);border-color:rgba(255,200,0,.6);box-shadow:inset 0 0 0 1px rgba(255,200,0,.15)}
+  .day.extra:hover{background:rgba(255,200,0,.32)}
 
   /* Tags */
   .day .tag{position:absolute;right:4px;bottom:4px;font-size:8px;font-weight:800;letter-spacing:.6px;text-transform:uppercase;
@@ -239,6 +243,7 @@
         <span class="pill"><span class="dot d-blue"></span> On rig</span>
         <span class="pill"><span class="dot d-red"></span> Travel to Doha</span>
         <span class="pill"><span class="dot d-green"></span> Fly home</span>
+        <span class="pill"><span class="dot d-yellow"></span> Additional day</span>
       </div>
     </div>
     <div class="quick-links">
@@ -255,6 +260,15 @@
 <dialog id="manage">
   <form method="dialog" id="manageForm">
     <div class="row"><strong>Manage day</strong><span class="small" id="manageDate"></span></div>
+    <label class="small" for="dayType">Day type</label>
+    <select id="dayType" style="width:100%;padding:10px 12px;border-radius:8px;border:1px solid rgba(255,255,255,.1);background:var(--day-bg);color:var(--text)">
+      <option value="auto">Auto (follows rotation)</option>
+      <option value="extra">Additional day (yellow)</option>
+      <option value="to">Travel to Doha (red)</option>
+      <option value="home">Fly home (green)</option>
+      <option value="on">On rig (blue)</option>
+      <option value="off">Off / Normal (no colour)</option>
+    </select>
     <label class="small" for="dayTitle">Day title (shows on the calendar)</label>
     <input type="text" id="dayTitle" placeholder="e.g., Work, Home, Holiday" />
     <div class="row"><strong>Attachments</strong><span class="small">Add as many as you like</span></div>
@@ -369,7 +383,7 @@
   const saveLinks=o=>_ls.set('flightLinks',JSON.stringify(o));
 
   // Clear stale localStorage on first load of updated file
-  (function(){const ver='flights-v2';if(_ls.get('calVersion')!==ver){_ls.rm('flightLinks');_ls.rm('rotationConfig');_ls.set('calVersion',ver);}})();
+  (function(){const ver='flights-v3';if(_ls.get('calVersion')!==ver){_ls.rm('flightLinks');_ls.rm('rotationConfig');_ls.set('calVersion',ver);}})();
 
   let CONFIG=loadConfig();
   let LINKS=loadLinks();
@@ -450,17 +464,27 @@
     const key=toKey(date);
     const cell=document.createElement('div'); cell.className='day'; cell.dataset.date=key;
     const info=rota[key];
-    if(info){ if(info.type==='on') cell.classList.add('on'); if(info.type==='to') cell.classList.add('to'); if(info.type==='home') cell.classList.add('home'); }
     const di=LINKS[key]||{title:'',items:[]};
+
+    // Custom type overrides rotation type; 'auto' falls through to rotation; 'off' clears colour
+    if(di.customType && di.customType!=='auto'){
+      if(di.customType!=='off') cell.classList.add(di.customType);
+    } else if(info){
+      if(info.type==='on') cell.classList.add('on');
+      if(info.type==='to') cell.classList.add('to');
+      if(info.type==='home') cell.classList.add('home');
+    }
+
     const titleText=di.title&&di.title.trim()?di.title.trim():'';
     const label=titleText?`<div class="label">${titleText}</div>`:'';
     cell.innerHTML=`<span class="num">${date.getDate()}</span><div class="link-indicator">⎘</div>${label}`;
 
-    // click behaviour: manager in edit; otherwise picker if any or if travel/home
+    // click behaviour: manager in edit; otherwise picker if attachments or special day
     cell.addEventListener('click',()=>{
       if(EDIT){ openManager(key); return; }
       const di=LINKS[key];
       if(di && di.items && di.items.length){ openPicker(key); return; }
+      if(di && di.customType && di.customType!=='auto' && di.customType!=='off'){ openPicker(key); return; }
       if(info && (info.type==='to'||info.type==='home')){ openPicker(key); return; }
     });
     return cell;
@@ -470,6 +494,13 @@
     document.querySelectorAll('.day').forEach(el=>{
       const k=el.dataset.date; const di=LINKS[k];
       if(di && di.items && di.items.length) el.classList.add('has-link'); else el.classList.remove('has-link');
+      // Apply custom type class
+      el.classList.remove('extra');
+      if(di && di.customType && di.customType!=='auto' && di.customType!=='off'){
+        // Remove rotation classes and apply custom
+        el.classList.remove('on','to','home');
+        el.classList.add(di.customType);
+      }
       const existing=el.querySelector('.label'); if(existing) existing.remove();
       let text=''; if(di && di.title && di.title.trim()) text = di.title.trim(); if(text){ const div=document.createElement('div'); div.className='label'; div.textContent=text; el.appendChild(div); }
     });
@@ -567,6 +598,7 @@
   const newFile=document.getElementById('newFile');
   const newFileTitle=document.getElementById('newFileTitle');
 
+  const dayType=document.getElementById('dayType');
   function openManager(dateKey){
     manageDate.textContent=dateKey; manage.dataset.date=dateKey;
     const di=LINKS[dateKey]||{title:'',items:[]};
@@ -574,6 +606,7 @@
     if(!Array.isArray(LINKS[dateKey].items)) LINKS[dateKey].items=[];
     // Prefill title with fallback if empty
     dayTitle.value=di.title||'';
+    dayType.value=di.customType||'auto';
     renderAttachList(dateKey);
     newUrl.value=''; newUrlTitle.value=''; newFile.value=''; newFileTitle.value='';
     manage.showModal();
@@ -625,7 +658,9 @@
     if(e.target.value==='save'){ e.preventDefault();
       const dateKey=manage.dataset.date; if(!dateKey) return;
       const di=LINKS[dateKey]||{title:'',items:[]}; di.title=dayTitle.value.trim();
-      LINKS[dateKey]=di; saveLinks(LINKS); refreshIndicatorsAndLabels(); fitLabels(); manage.close();
+      const typeVal=dayType.value;
+      if(typeVal==='auto'){ delete di.customType; } else { di.customType=typeVal; }
+      LINKS[dateKey]=di; saveLinks(LINKS); render(); manage.close();
     }
   });
   function fileToDataURL(file){ return new Promise((res,rej)=>{ const fr=new FileReader(); fr.onload=()=>res(fr.result); fr.onerror=rej; fr.readAsDataURL(file); }); }
